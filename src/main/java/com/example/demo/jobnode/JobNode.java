@@ -17,6 +17,10 @@ public class JobNode {
     public int sourceEdgeCount;
     public final Map<Integer, Boolean> sourceNodeReachingFlagMap = new HashMap<>();
 
+    public boolean allEdgeReached() {
+        return sourceNodeReachingFlagMap.size() == sourceEdgeCount;
+    }
+
     public boolean canProceed() {
         //判断该节点是否可以执行
         if (sourceEdgeCount != sourceNodeReachingFlagMap.size())

@@ -13,7 +13,7 @@ public class SpringRabbitConfigs {
     private static final String QUEUE_NAME = "queue.ex";
 
     @Bean
-    public Queue createQueue() {
+    public Queue creatQueue() {
         //For learning purpose - durable=false,
         // in a real project you may need to set this as true.
         return new Queue(QUEUE_NAME, true);
