@@ -3,7 +3,7 @@ package com.example.demo;
 import com.example.demo.component.JobManager;
 import com.example.demo.component.JobStatus;
 import com.example.demo.component.NodeResultMessenger;
-import com.example.demo.conditionexpr.BooleanConditionExpression;
+import com.example.demo.conditionexpr.ConditionExpression;
 import com.example.demo.conditionexpr.ForEachExpression;
 import com.example.demo.constant.NodeProcessResult;
 import com.example.demo.jobnode.*;
@@ -14,6 +14,7 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -36,10 +37,13 @@ public class MessageListener {
         JobStatus jobStatus = jobManager.getJobStatusById(messenger.jobId);
         if (jobStatus == null)
             return;
-
-        List<JobNode> succeedingNodeList = jobStatus.getSucceedingNode(messenger.nodeId);
+        List<JobNode> nodeToBeReachedList = new ArrayList<>();
+        if (messenger.selectiveEnterNodeId != -1)
+            nodeToBeReachedList.add(jobStatus.getNodeById(messenger.selectiveEnterNodeId));
+        else
+            nodeToBeReachedList = jobStatus.getSucceedingNode(messenger.nodeId);
         //<?>可否单独设置一个线程用来检测所有节点的等待超时
-        for (JobNode eachNode : succeedingNodeList) {
+        for (JobNode eachNode : nodeToBeReachedList) {
             if (eachNode.canProceed()) {
                 Map<String, Object> inParam = jobStatus.gatherInParamForNodeById(eachNode.nodeId);
                 if (eachNode instanceof TaskNode) {
@@ -58,13 +62,14 @@ public class MessageListener {
                     ConditionNode conditionNode = (ConditionNode) eachNode;
                     List<JobNode> succeedingNode = jobStatus.getSucceedingNode(eachNode.nodeId);
                     for (JobNode eachSucNode : succeedingNode) {
-                        BooleanConditionExpression expression = conditionNode.succeedingNodeId_expr_map.get(eachSucNode.nodeId);
+                        ConditionExpression expression = conditionNode.succeedingNodeId_expr_map.get(eachSucNode.nodeId);
                         expression.setParameter(inParam);
                         if (expression.execute())
                             eachSucNode.sourceNodeReachingFlagMap.put(conditionNode.nodeId, true);
                         else
                             eachSucNode.sourceNodeReachingFlagMap.put(conditionNode.nodeId, false);
                     }
+                    jobStatus.markUnreachable(eachNode);
                     NodeResultMessenger newMessenger = new NodeResultMessenger();
                     newMessenger.jobId = jobStatus.jobId;
                     newMessenger.nodeProcessResult = NodeProcessResult.SUCCESS;
@@ -113,8 +118,6 @@ public class MessageListener {
                                 newMessenger.nodeId = corresEndNode.nodeId;
                                 amqpTemplate.convertAndSend("fanout.ex", "", newMessenger);
                             }
-
-
                             break;
                         case REPETITION:
                             break;
@@ -127,23 +130,13 @@ public class MessageListener {
                 if (eachNode instanceof LoopEndNode) {
                     LoopStartNode corresStartNode = (LoopStartNode) jobStatus.getNodeById(((LoopEndNode) eachNode).startNodeId);
                     jobStatus.resetReachFlagAndIteratorInLoop(corresStartNode.nodeId, jobStatus.getAllNodeInLoop(corresStartNode.nodeId, corresStartNode));
-                    if (corresStartNode.forEachExpression.hasNext()) {
-                        NodeResultMessenger newMessenger = new NodeResultMessenger();
-                        JobNode oneOfFgNode = jobStatus.getForegoingNode(corresStartNode.nodeId).get(0);
-                        newMessenger.jobId = jobStatus.jobId;
-                        newMessenger.nodeProcessResult = NodeProcessResult.SUCCESS;
-                        newMessenger.nodeId = oneOfFgNode.nodeId;
-                        amqpTemplate.convertAndSend("fanout.ex", "", newMessenger);
-                    } else {
-                        jobStatus.getSucceedingNode(eachNode.nodeId).forEach(sucNode -> {
-                            jobStatus.setNodeReachingStatus(sucNode.nodeId, eachNode.nodeId, true);
-                        });
-                        NodeResultMessenger newMessenger = new NodeResultMessenger();
-                        newMessenger.jobId = jobStatus.jobId;
-                        newMessenger.nodeProcessResult = NodeProcessResult.SUCCESS;
-                        newMessenger.nodeId = eachNode.nodeId;
-                        amqpTemplate.convertAndSend("fanout.ex", "", newMessenger);
-                    }
+                    NodeResultMessenger newMessenger = new NodeResultMessenger();
+                    JobNode oneOfFgNode = jobStatus.getForegoingNode(corresStartNode.nodeId).get(0);
+                    newMessenger.jobId = jobStatus.jobId;
+                    newMessenger.nodeProcessResult = NodeProcessResult.SUCCESS;
+                    newMessenger.nodeId = oneOfFgNode.nodeId;
+                    newMessenger.selectiveEnterNodeId = corresStartNode.nodeId;
+                    amqpTemplate.convertAndSend("fanout.ex", "", newMessenger);
 
                     //1、查询循环起始节点，判断是否还需继续循环
                     //2、挑选当前循环使用的参数

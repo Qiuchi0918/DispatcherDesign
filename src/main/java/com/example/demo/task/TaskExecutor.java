@@ -38,7 +38,6 @@ public class TaskExecutor extends Thread {
             //运行...
             System.out.println(task.taskName);
             Thread.sleep(2000L);
-            //将输出参数放入map保存
             jobStatus.getSucceedingNode(jobNode.nodeId).forEach(eachNode -> {
                 jobStatus.setNodeReachingStatus(eachNode.nodeId, jobNode.nodeId, true);
             });

@@ -9,8 +9,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-public class BooleanConditionExpression {
-    public BooleanConditionExpression(String expr) {
+public class ConditionExpression {
+    public ConditionExpression(String expr) {
         this.expr = expr;
     }
 

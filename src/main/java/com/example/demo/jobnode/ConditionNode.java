@@ -1,6 +1,6 @@
 package com.example.demo.jobnode;
 
-import com.example.demo.conditionexpr.BooleanConditionExpression;
+import com.example.demo.conditionexpr.ConditionExpression;
 
 import java.util.Map;
 
@@ -9,5 +9,5 @@ public class ConditionNode extends JobNode {
         super(jobId, nodeId);
     }
 
-    public Map<Integer, BooleanConditionExpression> succeedingNodeId_expr_map;
+    public Map<Integer, ConditionExpression> succeedingNodeId_expr_map;
 }

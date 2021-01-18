@@ -9,4 +9,5 @@ public class NodeResultMessenger implements Serializable {
     public NodeProcessResult nodeProcessResult;
     public int jobId;
     public int nodeId;
+    public int selectiveEnterNodeId = -1;
 }

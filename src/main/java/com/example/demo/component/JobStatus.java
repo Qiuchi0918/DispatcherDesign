@@ -36,6 +36,7 @@ public class JobStatus {
         return idJobEdgeMap.get(jobEdgeId);
     }
 
+
     /**
      * 获取目标节点所有下一级后继节点
      *
@@ -192,16 +193,31 @@ public class JobStatus {
     }
 
     /**
-     * 用于标记条件语句带来的废弃通路，没写完！
+     * 用于标记条件语句带来的废弃通路，使用前要求条件节点已经完成下一级后续节点的连通性设置
      *
      * @param conditionNode 条件节点
      */
     public void markUnreachable(JobNode conditionNode) {
         List<JobNode> succeedingJobNode = getSucceedingNode(conditionNode.nodeId);
+        List<JobNode> appendingLpStartNode = new ArrayList<>();
         for (JobNode eachSucNode : succeedingJobNode) {
             if (eachSucNode.allEdgeReached() && !eachSucNode.canProceed()) {
-
+                if (eachSucNode instanceof LoopStartNode) {
+                    LoopEndNode endNode = (LoopEndNode) getNodeById(((LoopStartNode) eachSucNode).endNodeId);
+                    appendingLpStartNode.add(endNode);
+                    for (JobNode eachSucOfEndNode : getSucceedingNode(endNode.nodeId)) {
+                        setNodeReachingStatus(eachSucOfEndNode.nodeId, endNode.nodeId, false);
+                    }
+                }
+                for (JobNode eachSucOfSucNode : getSucceedingNode(eachSucNode.nodeId)) {
+                    setNodeReachingStatus(eachSucOfSucNode.nodeId, eachSucNode.nodeId, false);
+                }
             }
+        }
+
+        succeedingJobNode.addAll(appendingLpStartNode);
+        for (JobNode eachSucNode : succeedingJobNode) {
+            markUnreachable(eachSucNode);
         }
     }
 }
