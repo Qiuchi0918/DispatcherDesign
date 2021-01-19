@@ -20,6 +20,7 @@ public class JobStatus {
         });
         jobEdgeList.forEach(eachEdge -> {
             idJobEdgeMap.put(eachEdge.edgeId, eachEdge);
+            idJobNodeMap.get(eachEdge.endNodeId).sourceEdgeCount++;
         });
     }
 
@@ -68,13 +69,13 @@ public class JobStatus {
     }
 
     /**
-     * 设置目标节点出参
+     * 向目标节点的出参map添加一组新的命名参数
      *
      * @param nodeId    目标节点
      * @param paramName 参数名称
      * @param param     参数值
      */
-    public synchronized void setOutParamByNodeIdAndParamName(int nodeId, String paramName, Object param) {
+    public synchronized void addOutParamByNodeIdAndParamName(int nodeId, String paramName, Object param) {
         if (!nodeIdOutParamNameValueMap.containsKey(nodeId))
             nodeIdOutParamNameValueMap.put(nodeId, new HashMap<>());
         nodeIdOutParamNameValueMap.get(nodeId).put(paramName, param);
@@ -88,7 +89,7 @@ public class JobStatus {
      */
     public synchronized void copyAllToNodeOutParamByNodeId(int nodeId, Map<String, Object> srcParamMap) {
         srcParamMap.forEach((k, v) -> {
-            setOutParamByNodeIdAndParamName(nodeId, k, v);
+            addOutParamByNodeIdAndParamName(nodeId, k, v);
         });
     }
 
@@ -98,7 +99,7 @@ public class JobStatus {
      * @param nodeId 目标节点id
      * @return 目标节点出参
      */
-    public Map<String, Object> getOutParamOfNodeById(int nodeId) {
+    public synchronized Map<String, Object> getOutParamOfNodeById(int nodeId) {
         if (nodeIdOutParamNameValueMap.containsKey(nodeId))
             return nodeIdOutParamNameValueMap.get(nodeId);
         return null;
@@ -110,7 +111,7 @@ public class JobStatus {
      * @param nodeId 目标节点
      * @return 入参
      */
-    public Map<String, Object> gatherInParamForNodeById(int nodeId) {
+    public synchronized Map<String, Object> gatherInParamForNodeById(int nodeId) {
         Map<String, Object> result = new HashMap<>();
         for (JobNode eachNode : getForegoingNode(nodeId)) {
             Map<String, Object> eachOutParam = getOutParamOfNodeById(eachNode.nodeId);
@@ -127,7 +128,7 @@ public class JobStatus {
      * @param fromNodeId 对应前置节点的id
      * @param isAGo      接入情况
      */
-    public void setNodeReachingStatus(int curNodeId, int fromNodeId, boolean isAGo) {
+    public synchronized void setNodeReachingStatus(int curNodeId, int fromNodeId, boolean isAGo) {
         JobNode curNode = idJobNodeMap.get(curNodeId);
         curNode.sourceNodeReachingFlagMap.put(fromNodeId, isAGo);
     }
@@ -173,12 +174,12 @@ public class JobStatus {
     }
 
     /**
-     * 重置循环节内所有节点到达状态和循环起始节点的遍历器，不会重置其中有连接到循环外节点的相应到达状态
+     * 重置循环节内所有节点到达状态和循环起始节点的循环指示器，不会重置其中有连接到循环外节点的相应到达状态
      *
      * @param loopStartNodeID 循环开始节点
      * @param allNodeInLoop   循环内所有节点
      */
-    public void resetReachFlagAndIteratorInLoop(int loopStartNodeID, List<JobNode> allNodeInLoop) {
+    public synchronized void resetReachFlagAndTokenInLoop(int loopStartNodeID, List<JobNode> allNodeInLoop) {
         for (JobNode curNode : allNodeInLoop) {
             if (curNode.nodeId == loopStartNodeID)
                 continue;
@@ -194,10 +195,11 @@ public class JobStatus {
 
     /**
      * 用于标记条件语句带来的废弃通路，使用前要求条件节点已经完成下一级后续节点的连通性设置
+     * 不知道有没有问题
      *
      * @param conditionNode 条件节点
      */
-    public void markUnreachable(JobNode conditionNode) {
+    public synchronized void markUnreachable(JobNode conditionNode) {
         List<JobNode> succeedingJobNode = getSucceedingNode(conditionNode.nodeId);
         List<JobNode> appendingLpStartNode = new ArrayList<>();
         for (JobNode eachSucNode : succeedingJobNode) {

@@ -11,6 +11,7 @@ public class ConditionExprTest {
         List<String> lst = new ArrayList<>();
         lst.add("SomeString");
         param.put("key", lst);
+        //ConditionExpression expression = new ConditionExpression("key[0]==\"SomeString\"");
         ConditionExpression expression = new ConditionExpression("key[0]==\"SomeString\"");
         expression.setParameter(param);
         System.out.println(expression.execute());

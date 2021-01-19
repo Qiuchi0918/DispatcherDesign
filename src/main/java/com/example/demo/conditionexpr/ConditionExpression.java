@@ -2,11 +2,7 @@ package com.example.demo.conditionexpr;
 
 import com.googlecode.aviator.AviatorEvaluator;
 import com.googlecode.aviator.Expression;
-import com.googlecode.aviator.runtime.type.seq.MapSequence;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 
 public class ConditionExpression {
@@ -26,6 +22,11 @@ public class ConditionExpression {
         this.paramNameValueMap = paramNameValueMap;
     }
 
+    /**
+     * 执行判断
+     *
+     * @return 判断执行结果
+     */
     public boolean execute() {
         Expression compiledExp = AviatorEvaluator.compile(expr);
         Object[] params = new Object[paramNameValueMap.size() * 2];

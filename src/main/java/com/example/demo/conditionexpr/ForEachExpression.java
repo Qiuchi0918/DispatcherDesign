@@ -3,6 +3,8 @@ package com.example.demo.conditionexpr;
 import com.googlecode.aviator.AviatorEvaluator;
 import com.googlecode.aviator.Expression;
 
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -13,8 +15,8 @@ public class ForEachExpression {
 
     private Map<String, Object> paramNameValueMap;
     private final String expr;
-    private List<Object> paramList;
-    private int iterationIndex = 0;
+    private Object paramToBeUsedInLoop;
+    private Iterator<?> curIterPtr;
     public boolean initialized = false;
 
     /**
@@ -29,7 +31,13 @@ public class ForEachExpression {
     public void initialize(Map<String, Object> paramNameValueMap) {
         setParameter(paramNameValueMap);
         execute();
-        iterationIndex = 0;
+        if (paramToBeUsedInLoop instanceof Map) {
+            curIterPtr = ((Map<?, ?>) paramToBeUsedInLoop).entrySet().iterator();
+        } else if (paramToBeUsedInLoop instanceof List) {
+            curIterPtr = ((List<?>) paramToBeUsedInLoop).iterator();
+        } else if (paramToBeUsedInLoop instanceof HashSet) {
+            curIterPtr = ((HashSet<?>) paramToBeUsedInLoop).iterator();
+        }
         initialized = true;
     }
 
@@ -44,7 +52,7 @@ public class ForEachExpression {
             params[++index] = curEntry.getKey();
             params[++index] = curEntry.getValue();
         }
-        paramList = (List<Object>) compiledExp.execute(compiledExp.newEnv(params));
+        paramToBeUsedInLoop = compiledExp.execute(compiledExp.newEnv(params));
     }
 
     /**
@@ -53,10 +61,10 @@ public class ForEachExpression {
      * @return 当前循环变量
      */
     public Object getValueForNewIteration() {
-        return paramList.get(iterationIndex++);
+        return curIterPtr.next();
     }
 
     public boolean hasNext() {
-        return iterationIndex < paramList.size();
+        return curIterPtr.hasNext();
     }
 }

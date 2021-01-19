@@ -1,19 +1,19 @@
 package com.example.demo.jobnode;
 
+import com.example.demo.conditionexpr.ConditionExpression;
 import com.example.demo.conditionexpr.ForEachExpression;
 import com.example.demo.constant.LoopType;
 
-import java.util.Iterator;
 
 public class LoopStartNode extends JobNode {
-    public LoopStartNode(int jobId, int nodeId, LoopType loopType) {
+    public LoopStartNode(int jobId, int nodeId, int endNodeId, LoopType loopType) {
         super(jobId, nodeId);
         this.loopType = loopType;
+        this.endNodeId = endNodeId;
     }
 
-    public int endNodeId;
+    public final int endNodeId;
     public LoopType loopType;
-    public Iterator<Object> loopParamFeeder;
-    public ForEachExpression forEachExpression;
-    public ConditionNode conditionNode;
+    public ForEachExpression forEachExpression = new ForEachExpression("");
+    public ConditionExpression conditionExpression = new ConditionExpression("");
 }

@@ -16,3 +16,4 @@ println("sum of list is "+ sum);
 let map1 = seq.map();
 let map2 = seq.map();
 map1.e1
+
